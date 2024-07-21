@@ -1,0 +1,500 @@
+---
+output: 
+  pdf_document
+title: >
+  `\vspace{-1.8cm}`{=latex}Assignment_2
+author: "Nadezhda Anisimova - id 19579573"
+geometry: left=1.5cm, right=1.5cm, top=1.5cm, bottom=1.5cm
+fontsize: 12pt
+---
+
+## Introduction
+
+The criminality level in New Zealand is a topic of widespread discussion. Many people draw a direct connection between crime rates and the current government, whether it is Labour or National. In October 2023, there was an election and at the end of November, the ruling party of New Zealand changed, with Labour being replaced by the National Party. This report will take 1.5 years of statistics that can provide insights into whether there have been any changes during this period, emphasizing the last 6 months (from October 2023 to March 2024). To draw the relevant inference, this report will answer three smaller questions:
+
+-   Was the trend of the total number of crimes during the last 1.5 years (from October 2022 to March 2023) positive or negative?
+-   Did the number of different types of crimes drop or increase in Oct'23-Mar'24 compared to Oct'22-Mar'23?
+-   Did the proportion of different types of crimes that proceeded to court action drop or increase in Oct'23-Mar'24 compared to Oct'22-Mar'23?
+
+Another highly debated issue is the connection between crimes and ethnic groups. While analysis can provide some insights into the figures, it’s important to acknowledge that the whole picture may be somewhat misrepresented because not every crime includes information about the ethnicity of the offender. Regarding this question, the report will answer two smaller questions:
+
+-   How was the proportion of offenders divided by ethnicity groups during the last 1.5 years (from October 2022 to March 2023)?
+-   Was there an association between the type of crime and the ethnicity group during the last 1.5 years (from October 2022 to March 2023)?
+
+## Method
+
+This report utilizes statistics from the website of the New Zealand Police regarding the number and methods of proceedings, as well as descriptive information about offenders. The dataset used for analysis contains the number of offences from October 2022 to March 2024 (59915 rows). It is a quantitative continuous variable. The information about offences includes the upper level of offence type (the original name ANZSOC.Division), method of proceeding, year-month, and ethnic group. Year-month is a categorical ordinal variable, other variables are categorical nominal.
+
+After loading libraries *tidyverse*, *scales* and *knitr* I proceeded to the preprocessing stage. I found out that there were duplicated rows in the dataset, however, looking more closely at dashboards on the website, it became clear that offences could be divided into more detailed types which were not in the downloaded table but caused splitting lines. To cope with this problem, I grouped the table by categorical columns and got the total number of offences for every row. Also, the preprocessing stage included renaming columns and changing the format of the column *year-month*. In the original dataset, it was in the format *Apr.2023*, I changed it to *2023-04* to make it more visually clear. The next step was analysing the summary statistics to look at the data and understand the structure of variables, using 5 Number Summary.
+
+To answer the main questions I used plots and tables.To illustrate dynamics during the examined period I chose a line graph, which required grouping the original table by *year-month*. To illustrate the change in the number of offences in two periods (Oct.23-Mar.24 versus Oct.22-Mar.23) I added a column with *period* and grouped the table by offence types. The delta in the number of offences between two periods was counted as (offences for Oct.23-Mar.24) / (offences for Oct.22-Mar.23) - 1. The change in the proportion of court action proceedings also was illustrated in a table. The proportion was counted as (offences with court action proceeding) / (total offences), and the delta in proportion between the two periods was counted as (proportion for Oct.23-Mar.24) - (proportion for Oct.22-Mar.23). The division offences by ethnicity groups was illustrated with a horizontal bar chart that is appropriate to display data concerning to one categorical variable. The original table was grouped by ethnicity and the proportion for every ethnicity was counted as (number of offences of an ethnicity) / (total number of offences). A relationship between the type of crime and ethnicity was illustrated by a horizontal stacked bar chart. The original table was grouped by two variables - *offence* and *ethnicity*. Every sum of offences by type is 100% divided between ethnicities.
+
+## Result
+
+```{r setup, include=FALSE}
+
+# load libraries
+library(tidyverse)
+library(scales)
+library(knitr)
+```
+
+```{r dataframe, include=FALSE}
+
+# read dataset
+
+df <- read.csv("AEG_Full Data_data.csv")
+df
+```
+
+```{r rename_columns, include  =FALSE}
+df <- df %>%
+  rename(offence = ANZSOC.Division, proceeding = Method.of.Proceeding, year_month = Year.Month, ethnicity = Ethnic.Group, qty = Proceedings)
+
+head(df, 5) 
+```
+
+```{r check_duplicates, include=FALSE}
+df %>%
+  duplicated() %>%
+  sum()
+```
+
+```{r check_total_quantity, include=FALSE}
+sum(df$qty)
+```
+
+```{r group_table, include=FALSE}
+
+# group table to remove duplicates
+
+df <- df %>%
+  group_by(offence, proceeding, year_month, ethnicity) %>%
+  summarise(qty = sum(qty))
+head(df,5)
+```
+
+```{r duplicates_after_group, include=FALSE}
+df %>%
+  duplicated() %>%
+  sum()
+```
+
+```{r check_total_quantity_after_group, include=FALSE}
+sum(df$qty)
+```
+
+```{r nulls, include=FALSE}
+
+# check for null values
+df %>%
+  is.na() %>%
+  sum()
+```
+
+```{r, include=FALSE}
+
+# change the format of year-month
+
+df$year_month <- paste0("1", df$year_month)
+df$year_month <- format(as.Date(df$year_month, format = "%d%b%Y"), "%Y-%m")
+head(df, 5)
+```
+
+```{r summary_period, include=FALSE}
+
+# group table by year_month
+summary_period <- df %>%
+  group_by(year_month) %>% 
+  summarise(qty = sum(qty)) 
+
+# get summary statistics as variables
+rows_period <- length(summary_period$qty)
+minimum_period <- min(summary_period$qty)
+q1_period <- quantile(summary_period$qty, probs = 0.25)
+median_period <- median(summary_period$qty)
+mean_period <- mean(summary_period$qty)
+q3_period <- quantile(summary_period$qty, probs = 0.75)
+maximum_period <- max(summary_period$qty)
+
+```
+
+```{r summary_offence, include=FALSE}
+
+# group table by offence
+summary_offences <- df %>%
+  group_by(offence) %>% 
+  summarise(qty = sum(qty))
+
+# get summary statistics as variables
+rows_offences <- length(summary_offences$qty)
+minimum_offences <- min(summary_offences$qty)
+q1_offences <- quantile(summary_offences$qty, probs = 0.25)
+median_offences <- median(summary_offences$qty)
+mean_offences <- mean(summary_offences$qty)
+q3_offences <- quantile(summary_offences$qty, probs = 0.75)
+maximum_offences <- max(summary_offences$qty)
+```
+
+```{r summary_ethnicity, include=FALSE}
+
+# group table by ethnicity
+summary_ethnicity <- df %>%
+  group_by(ethnicity) %>% 
+  summarise(qty = sum(qty))
+
+# get summary statistics as variables
+rows_ethnicity <- length(summary_ethnicity$qty)
+minimum_ethnicity <- min(summary_ethnicity$qty)
+q1_ethnicity <- quantile(summary_ethnicity$qty, probs = 0.25)
+median_ethnicity <- median(summary_ethnicity$qty)
+mean_ethnicity <- mean(summary_ethnicity$qty)
+q3_ethnicity <- quantile(summary_ethnicity$qty, probs = 0.75)
+maximum_ethnicity <- max(summary_ethnicity$qty)
+```
+
+```{r summary_proceeding, include=FALSE}
+
+# group table by proceeding
+summary_proceeding <- df %>%
+  group_by(proceeding) %>% 
+  summarise(qty = sum(qty))
+
+# get summary statistics as variables
+rows_proceeding <- length(summary_proceeding$qty)
+minimum_proceeding <- min(summary_proceeding$qty)
+q1_proceeding <- quantile(summary_proceeding$qty, probs = 0.25)
+median_proceeding <- median(summary_proceeding$qty)
+mean_proceeding <- mean(summary_proceeding$qty)
+q3_proceeding <- quantile(summary_proceeding$qty, probs = 0.75)
+maximum_proceeding <- max(summary_proceeding$qty)
+```
+
+The distribution of the number of offences varies in dependence on the variable that we group the table by, which can be seen from table 1. Grouping the table by *Year-Month* shows not large difference between Mean and Median, as well as no outliers. Hence, the monthly number of offences does not vary widely. Grouping the table by other variables demonstrates a wide interquartile range, which indicates that the number of offences differs for various offence types, ethnicity groups and methods of proceeding. The number of analysed months - 18, the number of offence types - 16, the number of ethnicity groups - 8, the number of methods of proceeding - 7.
+
+```{r summary_table, echo = FALSE}
+
+#table with summary statistices grouped by various variables
+
+group <- c("year_month", "offence", "ethnicity", "proceeding")
+rows <- c(rows_period, rows_offences, rows_ethnicity, rows_proceeding)
+min <- c(minimum_period, minimum_offences, minimum_ethnicity, minimum_proceeding)
+q1 <- c(q1_period, q1_offences, q1_ethnicity, q1_proceeding)
+median <- c(median_period, median_offences, median_ethnicity, median_proceeding)
+mean <- c(mean_period, mean_offences, mean_ethnicity, mean_proceeding)
+q3 <- c(q3_period, q3_offences, q3_ethnicity, q3_proceeding)
+maximum <- c(maximum_period, maximum_offences, maximum_ethnicity, maximum_proceeding)
+
+summary_statistic <- data.frame("Grouped by" = group, 
+           "Values" = rows,                    
+           "Min" = min,
+           "Q1" = round(q1,0),
+           "Median" = round(median,0),
+           "Mean" = round(mean,0),
+           "Q3" = round(q3,0),
+           "Max" = maximum)
+
+kable(summary_statistic,
+      format = "pipe",
+      align = "lcccccc",
+      caption = "The summary statistics of offences"
+      )
+
+```
+
+### Was the trend of the total number of crimes during the last 1.5 years (from October 2022 to March 2023) positive or negative?
+
+```{r offences_by_month, include=FALSE}
+
+#group table by year-month
+offences_by_month <- df %>%
+  group_by(year_month) %>% 
+  summarise(qty_total = sum(qty)) %>%
+  arrange(year_month)
+
+offences_by_month
+
+```
+
+```{r plot_offences_by_month,  echo=FALSE, fig.height=4, fig.weight=4}
+
+ggplot(data=offences_by_month, aes(x=year_month, y=qty_total, group=1)) +
+  geom_line(color = "darkcyan", linewidth = 1)+
+  geom_point(color = "darkcyan") +
+  # set the angle of the x-axis text to 45 degrees
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  # adjust the scale of the y-axis
+  scale_y_continuous(limits = c(8000, 12000)) +
+  # Rename the labels
+  labs(
+    title = "Dynamics of offences by months",
+    subtitle = "October 2022 - March 2024",
+    x = "Year-Month", 
+    y = "Number of offences",
+   ) +
+  theme(text = element_text(size = 12),
+        plot.title=element_text(size=14),
+        plot.subtitle=element_text(size=12))
+
+```
+
+The graph fluctuates between 9000 and 11000 offences per month. In February of 2022, the number of offences dropped to a minimum of around 9200, next year - in February of 2023 figures also went down to approximately 9500. The maximum of offences were committed in May 2023. During the examined period there is no clear positive or negative trend, however, from September of 2023 figures are more stable and November'23, December'23, January'24 and March'24 show lower figures than last year.
+
+### Did the number of different types of crimes drop or increase in Oct'23-Mar'24 compared to Oct'22-Mar'23?
+
+```{r periods, include=FALSE}
+
+# labelling period and group table by offences and period, remove unnecessary months
+
+period_labour <- c("2022-10", "2022-11", "2022-12", "2023-01", "2023-02", "2023-03")
+period_national <- c("2023-10", "2023-11", "2023-12", "2024-01", "2024-02", "2024-03")
+
+df_periods <- df %>%
+  mutate(period = ifelse(year_month %in% period_labour, "Oct.22_Mar.23",
+                             ifelse(year_month %in% period_national, "Oct.23_Mar.24", "drop"))) %>%
+  filter(period %in% c("Oct.22_Mar.23", "Oct.23_Mar.24")) %>% 
+  group_by(offence, period) %>% 
+  summarise(qty_total = sum(qty))
+
+
+df_periods
+```
+
+```{r table_offences_periods, include = FALSE}
+
+#pivot table
+df_periods_pv <- df_periods %>%
+  pivot_wider(names_from = period, values_from = qty_total) %>% 
+  mutate(delta = round(Oct.23_Mar.24 / Oct.22_Mar.23 - 1, 2)) %>% 
+  arrange(delta) %>% 
+  mutate(delta = percent(delta))
+
+df_periods_pv
+
+```
+
+```{r table_offences_total, include=FALSE}
+
+# add total row to table
+total_row <- data.frame(offence = "Total",
+                        Oct.22_Mar.23 = sum(df_periods_pv$Oct.22_Mar.23), 
+                        Oct.23_Mar.24 = sum(df_periods_pv$Oct.23_Mar.24)) %>% 
+  mutate(delta = percent(Oct.23_Mar.24 / Oct.22_Mar.23 - 1))
+
+# Bind the total row to the bottom of the data frame
+df_periods_pv <- rbind(df_periods_pv, total_row)
+
+
+```
+
+```{r kable_offence_period, echo = FALSE}
+
+# illustrate the table
+kable(df_periods_pv,
+      format = "pipe",
+      align = "lccc",
+      caption = "The change in number of offences",
+      col.names = c('Offence', 'Oct.22-Mar.23', 'Oct.23-Mar.24', 'Delta'))
+```
+
+In total, during the analysed half year, the number of offences declined by -2% compared to the similar period 2022-2023. The highest drop happened with such offences as "Dangerous or Negligent Acts Endangering Persons", "Unlawful Entry With Intent/Burglary, Break and Enter" and "Illicit Drug Offences" (-13%, -10% and -8% respectively). However, the number of "Abduction, Harassment and Other Related Offences Against a Person" offences increased by 6%, from 2204 for 6 months to 2327.
+
+### Did the proportion of different types of crimes that proceeded to court action drop or increase in Oct'23-Mar'24 compared to Oct'22-Mar'23?
+
+```{r proceeding_periods, include=FALSE}
+
+# group table by offences, proceeding and period, remove unnecessary months
+df_proceeding_periods <- df %>%
+  mutate(period = ifelse(year_month %in% period_labour, "Oct.22_Mar.23",
+                             ifelse(year_month %in% period_national, "Oct.23_Mar.24", "drop"))) %>%
+  filter(period %in% c("Oct.22_Mar.23", "Oct.23_Mar.24")) %>% 
+  group_by(offence, proceeding, period) %>% 
+  summarise(qty_total = sum(qty))
+
+df_proceeding_periods
+```
+
+```{r proceeding_periods_2, include=FALSE}
+
+# get proportion of court action
+df_proceeding_periods <- merge(df_proceeding_periods, df_periods, by = c("offence", "period")) %>% 
+  rename(qty = qty_total.x, qty_offence = qty_total.y) %>% 
+  filter(proceeding == "Court Action") %>% 
+  mutate(proportion = round(qty / qty_offence, 2))
+
+df_proceeding_periods
+
+```
+
+```{r proceeding_periods_pv, include=FALSE}
+
+# pivot table
+df_proceeding_periods_pv <- df_proceeding_periods %>% 
+  pivot_wider(names_from = period, values_from = c(qty, qty_offence, proportion)) %>% 
+  mutate(delta = proportion_Oct.23_Mar.24 - proportion_Oct.22_Mar.23) %>% 
+  arrange(desc(delta))
+
+df_proceeding_periods_pv
+
+```
+
+```{r court_action_proportion, include = FALSE}
+
+# add total row to table
+total_row_proceeding <- data.frame(offence = "Total", proceeding = "Total",
+                        qty_Oct.22_Mar.23 = sum(df_proceeding_periods_pv$qty_Oct.22_Mar.23), 
+                        qty_Oct.23_Mar.24 = sum(df_proceeding_periods_pv$qty_Oct.23_Mar.24),
+                        qty_offence_Oct.22_Mar.23 = sum(df_proceeding_periods_pv$qty_offence_Oct.22_Mar.23),
+                        qty_offence_Oct.23_Mar.24 = sum(df_proceeding_periods_pv$qty_offence_Oct.23_Mar.24)) %>% 
+  mutate(proportion_Oct.22_Mar.23 = round(qty_Oct.22_Mar.23 / qty_offence_Oct.22_Mar.23, 2)) %>% 
+  mutate(proportion_Oct.23_Mar.24 = round(qty_Oct.23_Mar.24 / qty_offence_Oct.23_Mar.24, 2)) %>% 
+  mutate(delta = proportion_Oct.23_Mar.24 - proportion_Oct.22_Mar.23)
+
+# Bind the total row to the bottom of the data frame
+df_proceeding_periods_pv <- rbind(df_proceeding_periods_pv, total_row_proceeding) %>% 
+  select(proceeding, offence, proportion_Oct.22_Mar.23, proportion_Oct.23_Mar.24, delta) %>%
+  rename(Oct.22_Mar.23 = proportion_Oct.22_Mar.23, Oct.23_Mar.24 = proportion_Oct.23_Mar.24) %>%
+  select(offence, Oct.22_Mar.23, Oct.23_Mar.24, delta)
+  
+
+```
+
+```{r kable_court_action, echo = FALSE}
+
+# illustrate the table
+kable(df_proceeding_periods_pv,
+      format = "pipe",
+      align = "lccc",
+      caption = "Proportion of offences with court action",
+      col.names = c('Offence', 'Oct.22-Mar.23', 'Oct.23-Mar.24', 'Delta'))
+```
+
+In total, during October 2023 - March 2024, the proportion of offences proceeding to court increased by 2% compared to the similar period 2022-2023. The highest growth happened with "Illicit Drug Offences", from 0.49 to 0.56 by 0.07 points. However, in six types of offences, there is a drop in court action proceedings, the strongest with "Homicide and Related Offences", by -0.03 points. This kind of crime has the proportion of court action the most close to 100%.
+
+### How was the proportion of offenders divided by ethnicity groups during the last 1.5 years (from October 2022 to March 2023)?
+
+```{r ethnicity_table, include=FALSE}
+
+# group by ethnicity
+df_ethnicity <- df %>%
+  group_by(ethnicity) %>% 
+  summarise(qty_total = sum(qty)) %>%
+  arrange(desc(qty_total)) %>%
+  mutate(proportion = round(qty_total / sum(qty_total), 2))
+
+df_ethnicity
+
+```
+
+```{r ethnicity_plot, echo = FALSE, fig.height=3, fig.weight=5}
+ggplot(data = df_ethnicity,
+       aes(x=reorder(ethnicity, proportion), y=proportion, fill=proportion)) +
+       geom_bar(stat="identity", width=0.9) +
+       scale_fill_gradient(high="darkcyan", low="gray") +
+       geom_text(aes(y=proportion+0.02, label=percent(proportion)),
+                 size=4) + 
+       coord_flip(ylim=c(0, 0.5), expand=FALSE)+
+       scale_y_continuous(labels = scales::percent) +
+       labs(x = "", y = "Proportion of offences",
+            title = "Offences by ethnicity groups",
+            subtitle = "October 2022 - March 2024") +
+       theme_minimal() + 
+       theme(plot.title=element_text(size=14),
+             plot.subtitle=element_text(size=12),
+             legend.position = 'none',
+             text = element_text(size = 12))
+```
+
+45% of offences during 1.5 years were committed by Maori Ethnicity and 31% by European Ethnicity. However, 11% of offences do not contain information about an ethnicity group.
+
+### Was there an association between the type of crime and the ethnicity during the last 1.5 years (from October 2022 to March 2023)?
+
+```{r offence_short_name, include=FALSE}
+
+# get table with total number of offences
+offence_total <- df %>%
+  group_by(offence) %>% 
+  summarise(qty_total = sum(qty))
+
+offence_total
+```
+
+```{r, include=FALSE}
+
+# add short name for offences
+offences_table = data.frame(offence = c("Abduction, Harassment and Other Related Offences Against a Person", 
+                                        "Acts Intended to Cause Injury", 
+                                        "Dangerous or Negligent Acts Endangering Persons",
+                                        "Fraud, Deception and Related Offences",
+                                        "Illicit Drug Offences", 
+                                        "Offences Against Justice Procedures, Govt Sec and Govt Ops",
+                                        "Prohibited and Regulated Weapons and Explosives Offences",
+                                        "Property Damage and Environmental Pollution", 
+                                        "Public Order Offences", 
+                                        "Sexual Assault and Related Offences",
+                                        "Theft and Related Offences",
+                                        "Traffic and Vehicle Regulatory Offences",
+                                        "Unlawful Entry With Intent/Burglary, Break and Enter",
+                                        "Miscellaneous Offences",
+                                        "Homicide and Related Offences",
+                                        "Robbery, Extortion and Related Offences"), 
+                            short_offence = c("Abduction/Harassment",
+                                             "Intended to Cause Injury",
+                                             "Acts Endangering Persons",
+                                             "Fraud/Deception",
+                                             "Illicit Drug",
+                                             "Against Government",
+                                             "Weapons and Explosives",
+                                             "Property Damage/Pollution",
+                                             "Public Order",
+                                             "Sexual Assault",
+                                             "Theft",
+                                             "Traffic and Vehicle",
+                                             "Unlawful Entry / Break",
+                                             "Miscellaneous",
+                                             "Homicide",
+                                             "Robbery/Extortion"))
+
+offences_table
+
+```
+
+```{r ethnicity_offences, include=FALSE}
+
+# get table with proportion of offences for ethnities and offences
+df_ethnicity_offences <- df %>%
+  group_by(ethnicity, offence) %>% 
+  summarise(qty_total = sum(qty)) %>%
+  arrange(desc(qty_total)) %>% 
+  left_join(offence_total, by = "offence") %>% 
+  mutate(proportion = round(qty_total.x / qty_total.y, 2)) %>% 
+  left_join(offences_table, by = "offence")  %>% 
+  select(ethnicity, short_offence, proportion) %>% 
+  mutate(proportions_labels = ifelse(ethnicity %in% c("Maori","European", "Not Stated"), proportion, NA))
+
+df_ethnicity_offences
+```
+
+```{r ethnicity_offence_plot, echo=FALSE, message=FALSE, warning=FALSE}
+
+ggplot(data = df_ethnicity_offences,aes(x= short_offence, y = proportion,fill = ethnicity)) +
+      geom_bar(stat="identity", position ="fill") +
+      scale_fill_brewer(palette = "Paired") +
+      geom_text(aes(label=percent(proportions_labels, accuracy = 1)),
+                     position=position_fill(vjust=0.5), colour="white") +
+      theme_minimal() +
+      coord_flip() +
+      labs(x = "Offence", y = "Proportion",
+          title = "The ethnicity structure of offences",
+          subtitle = "October 2022 - March 2024") +
+      theme(plot.title=element_text(size=14),
+            plot.subtitle=element_text(size=12),
+            text = element_text(size = 12))
+
+```
+
+Some relationship between an ethnic group and the number of offences can be seen. Some offences had the biggest proportion of Maori ethnic group, for instance, 66 % of "Robbery, Extortion and Related Offences" and 58% of "Theft and Related Offences"; while some others - European ethnicity group, for instance, 44 % of "Fraud, Deception and Related Offences" and 42 % of "Sexual Assault and Related Offences". Organisations are observed only in "Miscellaneous Offences". And 30% of "Dangerous or Negligent Acts Endangering Persons" do not have information about ethnic group.
+
+## Discussion
+
+During the period from October 2022 to March 2024, there was no striking positive or negative trend in the monthly number of offences, however last seven months (September 2023 - March 2024) were more stable than previous ones and showed slight signs of decrease. The number of offences decreased by 2% in October 2023 - March 2024 compared to October 2022 - March 2023, especially of such offences as "Dangerous or Negligent Acts Endangering Persons" and "Unlawful Entry With Intent/Burglary, Break and Enter". The proportion of offences proceeding to court comparing the same period increased by 0.02 points. Relying on these figures, results can be connected firstly with the fact of the election, so the previous government could control the criminality level more strictly just before the election; and secondly with the fact that the new ruling party came into power in November. However, a broad and long-term analysis is required to be sure of such an inference. 45 % of offences were committed by Maori ethnic group, however, there were some types of offences where the European ethnic group was involved more often. Other ethnic groups, such as Asian and Indian, are nowhere near those two groups. The government should undercover the main reasons of such a proportion of offences commited by Maori and introduce some programs in order to change this situation, for instance, appropriate education among the young.
